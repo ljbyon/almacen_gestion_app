@@ -247,7 +247,7 @@ def main():
                 )
         
         with col2:
-            # Arrival time input
+            # Arrival time input with friendly UI
             st.write("**Hora de Llegada:**")
             today_date = datetime.now().date()
             
@@ -257,15 +257,38 @@ def main():
                     today_reservations['Orden_de_compra'] == selected_order
                 ].iloc[0]
                 booked_start_time = parse_time_range(str(order_details['Hora']))
-                default_time = booked_start_time if booked_start_time else datetime.now().time()
+                if booked_start_time:
+                    default_hour = booked_start_time.hour
+                    default_minute = booked_start_time.minute
+                else:
+                    default_hour = datetime.now().hour
+                    default_minute = datetime.now().minute
             else:
-                default_time = datetime.now().time()
+                default_hour = datetime.now().hour
+                default_minute = datetime.now().minute
             
-            arrival_time = st.time_input(
-                "Seleccione la hora:",
-                value=default_time,
-                key="arrival_time"
-            )
+            # Create user-friendly time picker
+            time_col1, time_col2 = st.columns(2)
+            with time_col1:
+                arrival_hour = st.selectbox(
+                    "Hora:",
+                    options=list(range(0, 24)),
+                    index=default_hour,
+                    format_func=lambda x: f"{x:02d}",
+                    key="arrival_hour"
+                )
+            
+            with time_col2:
+                arrival_minute = st.selectbox(
+                    "Minutos:",
+                    options=list(range(0, 60, 5)),  # 5-minute intervals
+                    index=default_minute // 5,  # Find closest 5-minute interval
+                    format_func=lambda x: f"{x:02d}",
+                    key="arrival_minute"
+                )
+            
+            # Combine into time object
+            arrival_time = time(arrival_hour, arrival_minute)
             
             st.info(f"Fecha: {today_date.strftime('%Y-%m-%d')}")
         
@@ -302,19 +325,52 @@ def main():
         
         with col1:
             st.write("**Hora de Inicio de Atención:**")
-            start_time = st.time_input(
-                "Seleccione la hora de inicio:",
-                value=datetime.now().time(),
-                key="start_time"
-            )
+            current_time = datetime.now()
+            
+            start_time_col1, start_time_col2 = st.columns(2)
+            with start_time_col1:
+                start_hour = st.selectbox(
+                    "Hora:",
+                    options=list(range(0, 24)),
+                    index=current_time.hour,
+                    format_func=lambda x: f"{x:02d}",
+                    key="start_hour"
+                )
+            
+            with start_time_col2:
+                start_minute = st.selectbox(
+                    "Minutos:",
+                    options=list(range(0, 60, 5)),  # 5-minute intervals
+                    index=current_time.minute // 5,
+                    format_func=lambda x: f"{x:02d}",
+                    key="start_minute"
+                )
+            
+            start_time = time(start_hour, start_minute)
         
         with col2:
             st.write("**Hora de Fin de Atención:**")
-            end_time = st.time_input(
-                "Seleccione la hora de fin:",
-                value=datetime.now().time(),
-                key="end_time"
-            )
+            
+            end_time_col1, end_time_col2 = st.columns(2)
+            with end_time_col1:
+                end_hour = st.selectbox(
+                    "Hora:",
+                    options=list(range(0, 24)),
+                    index=current_time.hour,
+                    format_func=lambda x: f"{x:02d}",
+                    key="end_hour"
+                )
+            
+            with end_time_col2:
+                end_minute = st.selectbox(
+                    "Minutos:",
+                    options=list(range(0, 60, 5)),  # 5-minute intervals
+                    index=current_time.minute // 5,
+                    format_func=lambda x: f"{x:02d}",
+                    key="end_minute"
+                )
+            
+            end_time = time(end_hour, end_minute)
         
         # Action buttons
         col1, col2 = st.columns(2)

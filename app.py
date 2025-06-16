@@ -143,10 +143,13 @@ def get_today_reservations(reservas_df):
     return today_data
 
 def parse_time_range(time_range_str):
-    """Parse time range string (e.g., '09:00 - 10:00') and return start time"""
+    """Parse time range string (e.g., '09:00-09:30' or '09:00 - 09:30') and return start time"""
     try:
-        start_time_str = time_range_str.split(' - ')[0].strip()
-        return datetime.strptime(start_time_str, '%H:%M').time()
+        # Handle both formats: "12:00-12:30" and "12:00 - 12:30"
+        if '-' in time_range_str:
+            start_time_str = time_range_str.split('-')[0].strip()
+            return datetime.strptime(start_time_str, '%H:%M').time()
+        return None
     except:
         return None
 

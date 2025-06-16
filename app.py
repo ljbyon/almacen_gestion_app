@@ -132,9 +132,15 @@ def save_gestion_to_excel(new_record):
 # 3. Helper Functions
 # ─────────────────────────────────────────────────────────────
 def get_today_reservations(reservas_df):
-    """Get today's reservations"""
+    """Get today's reservations ordered by hour"""
     today = datetime.now().strftime('%Y-%m-%d')
-    return reservas_df[reservas_df['Fecha'].astype(str).str.contains(today, na=False)]
+    today_data = reservas_df[reservas_df['Fecha'].astype(str).str.contains(today, na=False)].copy()
+    
+    # Sort by hour (extract start time from range)
+    today_data['start_time'] = today_data['Hora'].apply(lambda x: parse_time_range(str(x)) if str(x) != 'nan' else None)
+    today_data = today_data.sort_values('start_time').drop('start_time', axis=1)
+    
+    return today_data
 
 def parse_time_range(time_range_str):
     """Parse time range string (e.g., '09:00 - 10:00') and return start time"""
@@ -147,6 +153,12 @@ def parse_time_range(time_range_str):
 def calculate_time_difference(start_datetime, end_datetime):
     """Calculate time difference in minutes"""
     if start_datetime and end_datetime:
+        # Ensure both are datetime objects
+        if isinstance(start_datetime, str):
+            start_datetime = datetime.fromisoformat(start_datetime)
+        if isinstance(end_datetime, str):
+            end_datetime = datetime.fromisoformat(end_datetime)
+            
         diff = end_datetime - start_datetime
         return int(diff.total_seconds() / 60)
     return None
@@ -241,9 +253,20 @@ def main():
             # Arrival time input
             st.write("**Hora de Llegada:**")
             today_date = datetime.now().date()
+            
+            # Get default time from booked hour
+            if selected_order:
+                order_details = today_reservations[
+                    today_reservations['Orden_de_compra'] == selected_order
+                ].iloc[0]
+                booked_start_time = parse_time_range(str(order_details['Hora']))
+                default_time = booked_start_time if booked_start_time else datetime.now().time()
+            else:
+                default_time = datetime.now().time()
+            
             arrival_time = st.time_input(
                 "Seleccione la hora:",
-                value=datetime.now().time(),
+                value=default_time,
                 key="arrival_time"
             )
             
@@ -343,9 +366,9 @@ def main():
                             'Orden_de_compra': st.session_state.form_data['Orden_de_compra'],
                             'Proveedor': st.session_state.form_data['Proveedor'],
                             'Numero_de_bultos': st.session_state.form_data['Numero_de_bultos'],
-                            'Hora_llegada': st.session_state.form_data['Hora_llegada'],
-                            'Hora_inicio_atencion': hora_inicio,
-                            'Hora_fin_atencion': hora_fin,
+                            'Hora_llegada': st.session_state.form_data['Hora_llegada'].strftime('%Y-%m-%d %H:%M:%S'),
+                            'Hora_inicio_atencion': hora_inicio.strftime('%Y-%m-%d %H:%M:%S'),
+                            'Hora_fin_atencion': hora_fin.strftime('%Y-%m-%d %H:%M:%S'),
                             'Tiempo_espera': tiempo_espera,
                             'Tiempo_atencion': tiempo_atencion,
                             'Tiempo_total': tiempo_total,
@@ -359,14 +382,25 @@ def main():
                                 
                                 # Show summary
                                 st.subheader("📊 Resumen del Registro")
+                                
+                                # Debug information (can be removed in production)
+                                with st.expander("🔍 Información de Debug"):
+                                    st.write(f"Hora llegada: {st.session_state.form_data['Hora_llegada']}")
+                                    st.write(f"Hora inicio: {hora_inicio}")
+                                    st.write(f"Hora fin: {hora_fin}")
+                                    st.write(f"Tiempo espera calculado: {tiempo_espera}")
+                                    st.write(f"Tiempo atención calculado: {tiempo_atencion}")
+                                    st.write(f"Tiempo total calculado: {tiempo_total}")
+                                    st.write(f"Tiempo retraso calculado: {tiempo_retraso}")
+                                
                                 summary_col1, summary_col2 = st.columns(2)
                                 
                                 with summary_col1:
-                                    st.metric("Tiempo de Espera", f"{tiempo_espera} min")
-                                    st.metric("Tiempo de Atención", f"{tiempo_atencion} min")
+                                    st.metric("Tiempo de Espera", f"{tiempo_espera if tiempo_espera is not None else 'N/A'} min")
+                                    st.metric("Tiempo de Atención", f"{tiempo_atencion if tiempo_atencion is not None else 'N/A'} min")
                                 
                                 with summary_col2:
-                                    st.metric("Tiempo Total", f"{tiempo_total} min")
+                                    st.metric("Tiempo Total", f"{tiempo_total if tiempo_total is not None else 'N/A'} min")
                                     if tiempo_retraso is not None:
                                         if tiempo_retraso > 0:
                                             st.metric("Retraso", f"{tiempo_retraso} min", delta=f"+{tiempo_retraso}")
@@ -374,6 +408,8 @@ def main():
                                             st.metric("Adelanto", f"{abs(tiempo_retraso)} min", delta=tiempo_retraso)
                                         else:
                                             st.metric("Puntualidad", "A tiempo", delta=0)
+                                    else:
+                                        st.metric("Retraso", "N/A")
                                 
                                 # Reset form
                                 if st.button("Registrar Nuevo Proveedor"):

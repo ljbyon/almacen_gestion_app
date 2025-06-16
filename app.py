@@ -132,15 +132,9 @@ def save_gestion_to_excel(new_record):
 # 3. Helper Functions
 # ─────────────────────────────────────────────────────────────
 def get_today_reservations(reservas_df):
-    """Get today's reservations ordered by hour"""
+    """Get today's reservations"""
     today = datetime.now().strftime('%Y-%m-%d')
-    today_data = reservas_df[reservas_df['Fecha'].astype(str).str.contains(today, na=False)].copy()
-    
-    # Sort by hour (extract start time from range)
-    today_data['start_time'] = today_data['Hora'].apply(lambda x: parse_time_range(str(x)) if str(x) != 'nan' else None)
-    today_data = today_data.sort_values('start_time').drop('start_time', axis=1)
-    
-    return today_data
+    return reservas_df[reservas_df['Fecha'].astype(str).str.contains(today, na=False)]
 
 def parse_time_range(time_range_str):
     """Parse time range string (e.g., '09:00-09:30' or '09:00 - 09:30') and return start time"""

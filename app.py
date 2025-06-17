@@ -692,6 +692,15 @@ def upload_excel_file(credentials_df, reservas_df, gestion_df):
 # ─────────────────────────────────────────────────────────────
 def main():
     st.title("🚚 Control de Proveedores")
+    
+    # Manual refresh button
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button("🔄 Actualizar Datos", help="Descargar datos frescos desde SharePoint"):
+            download_excel_to_memory.clear()
+            st.success("✅ Datos actualizados!")
+            st.rerun()
+    
     st.markdown("---")
     
     # Load data

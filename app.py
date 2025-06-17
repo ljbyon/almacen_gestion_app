@@ -3,6 +3,9 @@ import os
 import streamlit as st
 import pandas as pd
 import time
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from datetime import datetime, timedelta, time as dt_time
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.user_credential import UserCredential
@@ -286,8 +289,201 @@ def combine_date_time(date_part, time_part):
     return datetime.combine(date_part, time_part)
 
 # ─────────────────────────────────────────────────────────────
-# 4. Helper Functions for Data Management
+# 4. Dashboard Helper Functions
 # ─────────────────────────────────────────────────────────────
+def get_current_week():
+    """Get current week number"""
+    return datetime.now().isocalendar()[1]
+
+def get_completed_weeks_data(gestion_df, weeks_back):
+    """Get data for completed weeks only"""
+    if gestion_df.empty:
+        return pd.DataFrame()
+    
+    current_week = get_current_week()
+    # Get weeks that are fully completed (exclude current week)
+    target_weeks = [current_week - i for i in range(1, weeks_back + 1)]
+    
+    # Filter data for target weeks
+    filtered_df = gestion_df[
+        (gestion_df['numero_de_semana'].isin(target_weeks)) &
+        (gestion_df['Tiempo_total'].notna())  # Only completed records
+    ].copy()
+    
+    return filtered_df
+
+def aggregate_by_week(df, provider_filter=None):
+    """Aggregate data by week"""
+    if df.empty:
+        return pd.DataFrame()
+    
+    # Filter by provider if specified
+    if provider_filter and provider_filter != "Todos":
+        df = df[df['Proveedor'] == provider_filter]
+    
+    # Aggregate by week
+    weekly_data = df.groupby('numero_de_semana').agg({
+        'Tiempo_espera': 'mean',
+        'Tiempo_atencion': 'mean', 
+        'Tiempo_total': 'mean',
+        'Tiempo_retraso': 'mean'
+    }).round(1).reset_index()
+    
+    return weekly_data
+
+def aggregate_by_hour(df, weeks_back):
+    """Aggregate data by reservation hour for selected weeks"""
+    if df.empty:
+        return pd.DataFrame()
+    
+    # Get completed weeks data
+    filtered_df = get_completed_weeks_data(df, weeks_back)
+    
+    if filtered_df.empty:
+        return pd.DataFrame()
+    
+    # Aggregate by hour
+    hourly_data = filtered_df.groupby('hora_de_reserva').agg({
+        'Tiempo_espera': 'mean',
+        'Tiempo_atencion': 'mean',
+        'Tiempo_total': 'mean', 
+        'Tiempo_retraso': 'mean'
+    }).round(1).reset_index()
+    
+    return hourly_data
+
+def create_weekly_times_chart(weekly_data):
+    """Create chart for weekly time metrics"""
+    if weekly_data.empty:
+        return None
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatter(
+        x=weekly_data['numero_de_semana'],
+        y=weekly_data['Tiempo_espera'],
+        mode='lines+markers',
+        name='Tiempo de Espera',
+        line=dict(color='#FF6B6B')
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=weekly_data['numero_de_semana'],
+        y=weekly_data['Tiempo_atencion'],
+        mode='lines+markers', 
+        name='Tiempo de Atención',
+        line=dict(color='#4ECDC4')
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=weekly_data['numero_de_semana'],
+        y=weekly_data['Tiempo_total'],
+        mode='lines+markers',
+        name='Tiempo Total', 
+        line=dict(color='#45B7D1')
+    ))
+    
+    fig.update_layout(
+        title='Tiempos Promedio por Semana',
+        xaxis_title='Número de Semana',
+        yaxis_title='Tiempo (minutos)',
+        hovermode='x unified'
+    )
+    
+    return fig
+
+def create_weekly_delay_chart(weekly_data):
+    """Create chart for weekly delay metrics"""
+    if weekly_data.empty:
+        return None
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatter(
+        x=weekly_data['numero_de_semana'],
+        y=weekly_data['Tiempo_retraso'],
+        mode='lines+markers',
+        name='Tiempo de Retraso',
+        line=dict(color='#E74C3C'),
+        fill='tonexty'
+    ))
+    
+    # Add zero line
+    fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
+    
+    fig.update_layout(
+        title='Tiempo de Retraso Promedio por Semana',
+        xaxis_title='Número de Semana',
+        yaxis_title='Tiempo (minutos)',
+        hovermode='x unified'
+    )
+    
+    return fig
+
+def create_hourly_times_chart(hourly_data):
+    """Create chart for hourly time metrics"""
+    if hourly_data.empty:
+        return None
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Bar(
+        x=hourly_data['hora_de_reserva'],
+        y=hourly_data['Tiempo_espera'],
+        name='Tiempo de Espera',
+        marker_color='#FF6B6B'
+    ))
+    
+    fig.add_trace(go.Bar(
+        x=hourly_data['hora_de_reserva'],
+        y=hourly_data['Tiempo_atencion'],
+        name='Tiempo de Atención',
+        marker_color='#4ECDC4'
+    ))
+    
+    fig.add_trace(go.Bar(
+        x=hourly_data['hora_de_reserva'],
+        y=hourly_data['Tiempo_total'],
+        name='Tiempo Total',
+        marker_color='#45B7D1'
+    ))
+    
+    fig.update_layout(
+        title='Tiempos Promedio por Hora de Reserva',
+        xaxis_title='Hora de Reserva',
+        yaxis_title='Tiempo (minutos)',
+        barmode='group'
+    )
+    
+    return fig
+
+def create_hourly_delay_chart(hourly_data):
+    """Create chart for hourly delay metrics"""
+    if hourly_data.empty:
+        return None
+    
+    fig = go.Figure()
+    
+    # Color bars based on positive/negative delay
+    colors = ['#E74C3C' if x >= 0 else '#27AE60' for x in hourly_data['Tiempo_retraso']]
+    
+    fig.add_trace(go.Bar(
+        x=hourly_data['hora_de_reserva'],
+        y=hourly_data['Tiempo_retraso'],
+        name='Tiempo de Retraso',
+        marker_color=colors
+    ))
+    
+    # Add zero line
+    fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
+    
+    fig.update_layout(
+        title='Tiempo de Retraso Promedio por Hora de Reserva',
+        xaxis_title='Hora de Reserva',
+        yaxis_title='Tiempo (minutos)'
+    )
+    
+    return fig
 def get_existing_arrivals(gestion_df):
     """Get orders that already have arrival registered today but not yet completed"""
     today = datetime.now().strftime('%Y-%m-%d')
@@ -488,7 +684,7 @@ def upload_excel_file(credentials_df, reservas_df, gestion_df):
         return False
 
 # ─────────────────────────────────────────────────────────────
-# 5. Main App
+# 6. Main App
 # ─────────────────────────────────────────────────────────────
 def main():
     st.title("🚚 Control de Proveedores")
@@ -515,7 +711,7 @@ def main():
     pending_arrivals = get_pending_arrivals(today_reservations, gestion_df)
     
     # Create tabs with enhanced styling
-    tab1, tab2 = st.tabs(["🚚 REGISTRO DE LLEGADA", "⚙️ REGISTRO DE ATENCIÓN"])
+    tab1, tab2, tab3 = st.tabs(["🚚 REGISTRO DE LLEGADA", "⚙️ REGISTRO DE ATENCIÓN", "📊 DASHBOARD"])
     
     # Visual separator
     st.markdown('<div class="tab-separator"></div>', unsafe_allow_html=True)
@@ -845,6 +1041,134 @@ def main():
                 '<div class="service-info">⚠️ No hay llegadas registradas hoy. Primero debe registrar la llegada en la pestaña anterior.</div>', 
                 unsafe_allow_html=True
             )
+    
+    # ─────────────────────────────────────────────────────────────
+    # TAB 3: Dashboard
+    # ─────────────────────────────────────────────────────────────
+    with tab3:
+        st.markdown("*Análisis y tendencias de rendimiento de proveedores*")
+        
+        # Check if we have data
+        if gestion_df.empty:
+            st.warning("📊 No hay datos disponibles para mostrar gráficos.")
+            return
+        
+        # Filter controls
+        st.subheader("🔧 Controles de Filtrado")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Provider filter
+            providers = ["Todos"] + sorted(gestion_df['Proveedor'].dropna().unique().tolist())
+            selected_provider = st.selectbox(
+                "Proveedor:",
+                options=providers,
+                key="dashboard_provider"
+            )
+        
+        with col2:
+            # Week range filter
+            week_options = {
+                "1 semana": 1,
+                "2 semanas": 2, 
+                "4 semanas": 4,
+                "12 semanas": 12,
+                "24 semanas": 24
+            }
+            selected_weeks_label = st.selectbox(
+                "Período (semanas completas):",
+                options=list(week_options.keys()),
+                key="dashboard_weeks"
+            )
+            selected_weeks = week_options[selected_weeks_label]
+        
+        st.markdown("---")
+        
+        # Get filtered data
+        filtered_data = get_completed_weeks_data(gestion_df, selected_weeks)
+        
+        if filtered_data.empty:
+            st.warning(f"📊 No hay datos completos para las últimas {selected_weeks} semanas.")
+            return
+        
+        # Graph 1: Weekly Time Metrics
+        st.subheader("📈 Gráfico 1: Tiempos por Semana")
+        weekly_data = aggregate_by_week(filtered_data, selected_provider)
+        
+        if not weekly_data.empty:
+            fig1 = create_weekly_times_chart(weekly_data)
+            if fig1:
+                st.plotly_chart(fig1, use_container_width=True)
+        else:
+            st.info("No hay datos para el proveedor seleccionado en el período especificado.")
+        
+        st.markdown("---")
+        
+        # Graph 2: Weekly Delay Metrics  
+        st.subheader("⏰ Gráfico 2: Retrasos por Semana")
+        
+        if not weekly_data.empty:
+            fig2 = create_weekly_delay_chart(weekly_data)
+            if fig2:
+                st.plotly_chart(fig2, use_container_width=True)
+        else:
+            st.info("No hay datos para el proveedor seleccionado en el período especificado.")
+        
+        st.markdown("---")
+        
+        # Graph 3: Hourly Time Metrics
+        st.subheader("🕐 Gráfico 3: Tiempos por Hora de Reserva")
+        hourly_data = aggregate_by_hour(gestion_df, selected_weeks)
+        
+        if not hourly_data.empty:
+            fig3 = create_hourly_times_chart(hourly_data)
+            if fig3:
+                st.plotly_chart(fig3, use_container_width=True)
+        else:
+            st.info("No hay datos de horas de reserva para el período especificado.")
+        
+        st.markdown("---")
+        
+        # Graph 4: Hourly Delay Metrics
+        st.subheader("⚡ Gráfico 4: Retrasos por Hora de Reserva")
+        
+        if not hourly_data.empty:
+            fig4 = create_hourly_delay_chart(hourly_data)
+            if fig4:
+                st.plotly_chart(fig4, use_container_width=True)
+        else:
+            st.info("No hay datos de horas de reserva para el período especificado.")
+        
+        # Summary stats
+        st.markdown("---")
+        st.subheader("📊 Estadísticas del Período")
+        
+        if not filtered_data.empty:
+            # Filter by provider for stats
+            stats_data = filtered_data.copy()
+            if selected_provider != "Todos":
+                stats_data = stats_data[stats_data['Proveedor'] == selected_provider]
+            
+            if not stats_data.empty:
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    avg_wait = stats_data['Tiempo_espera'].mean()
+                    st.metric("Espera Promedio", f"{avg_wait:.1f} min")
+                
+                with col2:
+                    avg_service = stats_data['Tiempo_atencion'].mean()
+                    st.metric("Atención Promedio", f"{avg_service:.1f} min")
+                
+                with col3:
+                    avg_total = stats_data['Tiempo_total'].mean()
+                    st.metric("Total Promedio", f"{avg_total:.1f} min")
+                
+                with col4:
+                    avg_delay = stats_data['Tiempo_retraso'].mean()
+                    delay_color = "normal" if avg_delay <= 0 else "inverse"
+                    st.metric("Retraso Promedio", f"{avg_delay:.1f} min")
 
 if __name__ == "__main__":
     main()

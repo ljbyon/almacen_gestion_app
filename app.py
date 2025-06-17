@@ -390,6 +390,9 @@ def create_weekly_times_chart(weekly_data):
         hovermode='x unified'
     )
     
+    # Set x-axis tick interval to 1
+    fig.update_xaxes(dtick=1)
+    
     return fig
 
 def create_weekly_delay_chart(weekly_data):

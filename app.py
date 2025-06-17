@@ -151,9 +151,8 @@ except KeyError as e:
 # ─────────────────────────────────────────────────────────────
 # 2. Excel Download Functions
 # ─────────────────────────────────────────────────────────────
-@st.cache_data(ttl=300)  # Cache for 5 minutes
 def download_excel_to_memory():
-    """Download Excel file from SharePoint to memory"""
+    """Download Excel file from SharePoint to memory - Fresh data every time"""
     try:
         # Authenticate
         user_credentials = UserCredential(USERNAME, PASSWORD)
@@ -242,9 +241,6 @@ def save_gestion_to_excel(new_record):
         excel_buffer.seek(0)
         folder.files.add(file_name, excel_buffer.getvalue(), True)
         ctx.execute_query()
-        
-        # Clear cache
-        download_excel_to_memory.clear()
         
         return True
         
@@ -675,8 +671,6 @@ def upload_excel_file(credentials_df, reservas_df, gestion_df):
         folder.files.add(file_name, excel_buffer.getvalue(), True)
         ctx.execute_query()
         
-        # Clear cache
-        download_excel_to_memory.clear()
         return True
         
     except Exception as e:

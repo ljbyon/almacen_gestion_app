@@ -633,7 +633,8 @@ def main():
                 st.markdown(f'''
                 <div class="service-info">
                     <strong>Proveedor:</strong> {arrival_record['Proveedor']} | 
-                    <strong>Llegada:</strong> {arrival_time_str.split(' ')[1][:5] if ' ' in arrival_time_str else 'N/A'}
+                    <strong>Llegada:</strong> {arrival_time_str.split(' ')[1][:5] if ' ' in arrival_time_str else 'N/A'} | 
+                    <strong>Número de Bultos:</strong> {arrival_record['Numero_de_bultos']}
                 </div>
                 ''', unsafe_allow_html=True)
                 

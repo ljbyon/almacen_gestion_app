@@ -168,7 +168,7 @@ def combine_date_time(date_part, time_part):
 # 4. Helper Functions for Data Management
 # ─────────────────────────────────────────────────────────────
 def get_existing_arrivals(gestion_df):
-    """Get orders that already have arrival registered today"""
+    """Get orders that already have arrival registered today but not yet completed"""
     today = datetime.now().strftime('%Y-%m-%d')
     if gestion_df.empty:
         return []
@@ -177,7 +177,48 @@ def get_existing_arrivals(gestion_df):
     today_arrivals = gestion_df[
         gestion_df['Hora_llegada'].astype(str).str.contains(today, na=False)
     ]
-    return today_arrivals['Orden_de_compra'].tolist()
+    
+    # Only return orders that don't have service times completed
+    pending_service = today_arrivals[
+        today_arrivals['Hora_inicio_atencion'].isna() | 
+        today_arrivals['Hora_fin_atencion'].isna()
+    ]
+    
+    return pending_service['Orden_de_compra'].tolist()
+
+def get_completed_orders(gestion_df):
+    """Get orders that have both arrival and service registered today"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    if gestion_df.empty:
+        return []
+    
+    # Filter records with arrival time from today
+    today_records = gestion_df[
+        gestion_df['Hora_llegada'].astype(str).str.contains(today, na=False)
+    ]
+    
+    # Return orders that have both arrival and service times
+    completed = today_records[
+        today_records['Hora_inicio_atencion'].notna() & 
+        today_records['Hora_fin_atencion'].notna()
+    ]
+    
+    return completed['Orden_de_compra'].tolist()
+
+def get_pending_arrivals(today_reservations, gestion_df):
+    """Get orders that haven't registered arrival yet"""
+    existing_arrivals = get_existing_arrivals(gestion_df)
+    completed_orders = get_completed_orders(gestion_df)
+    
+    # Combine both lists to exclude from dropdown
+    processed_orders = existing_arrivals + completed_orders
+    
+    # Return orders that haven't been processed at all
+    pending = today_reservations[
+        ~today_reservations['Orden_de_compra'].isin(processed_orders)
+    ]
+    
+    return pending['Orden_de_compra'].tolist()
 
 def get_arrival_record(gestion_df, orden_compra):
     """Get existing arrival record for an order"""
@@ -300,8 +341,10 @@ def main():
         st.warning("No hay reservas programadas para hoy.")
         return
     
-    # Get existing arrivals
+    # Get order status
     existing_arrivals = get_existing_arrivals(gestion_df)
+    completed_orders = get_completed_orders(gestion_df)
+    pending_arrivals = get_pending_arrivals(today_reservations, gestion_df)
     
     # Create tabs
     tab1, tab2 = st.tabs(["📍 Registro de Llegada", "🔄 Registro de Atención"])
@@ -316,13 +359,16 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            # Order selection
-            order_options = today_reservations['Orden_de_compra'].tolist()
-            selected_order_tab1 = st.selectbox(
-                "Orden de Compra:",
-                options=order_options,
-                key="order_select_tab1"
-            )
+            # Order selection - only show orders that haven't been processed
+            if not pending_arrivals:
+                st.info("✅ Todas las llegadas del día han sido registradas")
+                selected_order_tab1 = None
+            else:
+                selected_order_tab1 = st.selectbox(
+                    "Orden de Compra:",
+                    options=pending_arrivals,
+                    key="order_select_tab1"
+                )
             
             if selected_order_tab1:
                 # Get order details
@@ -342,12 +388,6 @@ def main():
                     value=str(order_details['Numero_de_bultos']),
                     disabled=True
                 )
-                
-                # Show status
-                if selected_order_tab1 in existing_arrivals:
-                    st.success("✅ Llegada ya registrada")
-                else:
-                    st.info("⏳ Pendiente de registro")
         
         with col2:
             # Arrival time input with friendly UI
@@ -489,16 +529,20 @@ def main():
                     # Service time inputs - only show when not registered
                     col1, col2 = st.columns(2)
                     
+                    # Parse arrival time for defaults
+                    arrival_datetime = datetime.fromisoformat(str(arrival_record['Hora_llegada']))
+                    default_hour = arrival_datetime.hour
+                    default_minute = (arrival_datetime.minute // 5) * 5  # Round to nearest 5-minute interval
+                    
                     with col1:
                         st.write("**Hora de Inicio de Atención:**")
-                        current_time = datetime.now()
                         
                         start_time_col1, start_time_col2 = st.columns(2)
                         with start_time_col1:
                             start_hour = st.selectbox(
                                 "Hora:",
                                 options=list(range(0, 24)),
-                                index=current_time.hour,
+                                index=default_hour,
                                 format_func=lambda x: f"{x:02d}",
                                 key="start_hour_tab2"
                             )
@@ -507,7 +551,7 @@ def main():
                             start_minute = st.selectbox(
                                 "Minutos:",
                                 options=list(range(0, 60, 5)),  # 5-minute intervals
-                                index=current_time.minute // 5,
+                                index=default_minute // 5,
                                 format_func=lambda x: f"{x:02d}",
                                 key="start_minute_tab2"
                             )
@@ -522,7 +566,7 @@ def main():
                             end_hour = st.selectbox(
                                 "Hora:",
                                 options=list(range(0, 24)),
-                                index=current_time.hour,
+                                index=default_hour,
                                 format_func=lambda x: f"{x:02d}",
                                 key="end_hour_tab2"
                             )
@@ -531,7 +575,7 @@ def main():
                             end_minute = st.selectbox(
                                 "Minutos:",
                                 options=list(range(0, 60, 5)),  # 5-minute intervals
-                                index=current_time.minute // 5,
+                                index=default_minute // 5,
                                 format_func=lambda x: f"{x:02d}",
                                 key="end_minute_tab2"
                             )

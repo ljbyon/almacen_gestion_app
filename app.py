@@ -801,6 +801,22 @@ def main():
                                     if update_service_times(selected_order_tab2, service_data):
                                         st.success("✅ Atención registrada exitosamente!")
                                         
+                                        # Calculate delay for summary (recalculate to ensure accuracy)
+                                        arrival_datetime = datetime.fromisoformat(str(arrival_record['Hora_llegada']))
+                                        
+                                        # Get the booked time from reservas_df
+                                        order_reserva = today_reservations[
+                                            today_reservations['Orden_de_compra'] == selected_order_tab2
+                                        ]
+                                        
+                                        tiempo_retraso_display = None
+                                        if not order_reserva.empty:
+                                            booked_time_range = str(order_reserva.iloc[0]['Hora'])
+                                            booked_start_time = parse_time_range(booked_time_range)
+                                            if booked_start_time:
+                                                booked_datetime = combine_date_time(arrival_datetime.date(), booked_start_time)
+                                                tiempo_retraso_display = calculate_time_difference(booked_datetime, arrival_datetime)
+                                        
                                         # Show summary
                                         col1, col2 = st.columns(2)
                                         with col1:
@@ -808,6 +824,16 @@ def main():
                                             st.metric("Tiempo de Atención", f"{tiempo_atencion} min")
                                         with col2:
                                             st.metric("Tiempo Total", f"{tiempo_total} min")
+                                            # Display calculated delay
+                                            if tiempo_retraso_display is not None:
+                                                if tiempo_retraso_display > 0:
+                                                    st.metric("Tiempo de Retraso", f"{tiempo_retraso_display} min", delta=f"+{tiempo_retraso_display}")
+                                                elif tiempo_retraso_display < 0:
+                                                    st.metric("Tiempo de Adelanto", f"{abs(tiempo_retraso_display)} min", delta=tiempo_retraso_display)
+                                                else:
+                                                    st.metric("Puntualidad", "A tiempo", delta=0)
+                                            else:
+                                                st.metric("Tiempo de Retraso", "N/A")
                                         
                                         # Wait 5 seconds before refreshing
                                         with st.spinner("Actualizando datos..."):

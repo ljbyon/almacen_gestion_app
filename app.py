@@ -417,7 +417,8 @@ def create_weekly_delay_chart(weekly_data):
         title='Tiempo de Retraso Promedio por Semana',
         xaxis_title='Número de Semana',
         yaxis_title='Tiempo (minutos)',
-        hovermode='x unified'
+        hovermode='x unified',
+        xaxis=dict(dtick=1)
     )
     
     return fig

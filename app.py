@@ -476,15 +476,6 @@ def main():
     # TAB 1: Arrival Registration
     # ─────────────────────────────────────────────────────────────
     with tab1:
-        # Styled container for arrival tab
-        st.markdown("""
-        <div class="arrival-container">
-            <div class="arrival-header">
-                📍 REGISTRO DE LLEGADA DEL PROVEEDOR
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
         with st.container():
             st.markdown('<div class="arrival-container">', unsafe_allow_html=True)
             
@@ -625,15 +616,6 @@ def main():
     # TAB 2: Service Registration
     # ─────────────────────────────────────────────────────────────
     with tab2:
-        # Styled container for service tab
-        st.markdown("""
-        <div class="service-container">
-            <div class="service-header">
-                ⚙️ REGISTRO DE ATENCIÓN AL PROVEEDOR
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
         with st.container():
             st.markdown('<div class="service-container">', unsafe_allow_html=True)
             

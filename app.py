@@ -476,12 +476,9 @@ def main():
     # TAB 1: Arrival Registration
     # ─────────────────────────────────────────────────────────────
     with tab1:
-        with st.container():
-            st.markdown('<div class="arrival-container">', unsafe_allow_html=True)
-            
-            st.markdown("*Registre la hora de llegada del proveedor*")
-            
-            col1, col2 = st.columns(2)
+        st.markdown("*Registre la hora de llegada del proveedor*")
+        
+        col1, col2 = st.columns(2)
         
         with col1:
             # Order selection - only show orders that haven't been processed
@@ -616,18 +613,15 @@ def main():
     # TAB 2: Service Registration
     # ─────────────────────────────────────────────────────────────
     with tab2:
-        with st.container():
-            st.markdown('<div class="service-container">', unsafe_allow_html=True)
-            
-            st.markdown("*Registre los tiempos de inicio y fin de atención*")
-            
-            # Order selection
-            selected_order_tab2 = st.selectbox(
-                "Orden de Compra:",
-                options=existing_arrivals if existing_arrivals else ["No hay llegadas registradas"],
-                disabled=not existing_arrivals,
-                key="order_select_tab2"
-            )
+        st.markdown("*Registre los tiempos de inicio y fin de atención*")
+        
+        # Order selection
+        selected_order_tab2 = st.selectbox(
+            "Orden de Compra:",
+            options=existing_arrivals if existing_arrivals else ["No hay llegadas registradas"],
+            disabled=not existing_arrivals,
+            key="order_select_tab2"
+        )
         
             if existing_arrivals and selected_order_tab2:
                 # Get arrival record
@@ -773,8 +767,6 @@ def main():
                     '<div class="service-info">⚠️ No hay llegadas registradas hoy. Primero debe registrar la llegada en la pestaña anterior.</div>', 
                     unsafe_allow_html=True
                 )
-            
-            st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()

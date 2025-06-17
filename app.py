@@ -404,8 +404,7 @@ def create_weekly_delay_chart(weekly_data):
         y=weekly_data['Tiempo_retraso'],
         mode='lines+markers',
         name='Tiempo de Retraso',
-        line=dict(color='#E74C3C'),
-        fill='tonexty'
+        line=dict(color='#E74C3C')
     ))
     
     # Add zero line
@@ -1093,6 +1092,36 @@ def main():
             st.warning(f"📊 No hay datos completos para las últimas {selected_weeks} semanas.")
             return
         
+        # Summary stats - MOVED TO BEGINNING
+        st.subheader("📊 Estadísticas del Período")
+        
+        # Filter by provider for stats
+        stats_data = filtered_data.copy()
+        if selected_provider != "Todos":
+            stats_data = stats_data[stats_data['Proveedor'] == selected_provider]
+        
+        if not stats_data.empty:
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                avg_wait = stats_data['Tiempo_espera'].mean()
+                st.metric("Espera Promedio", f"{avg_wait:.1f} min")
+            
+            with col2:
+                avg_service = stats_data['Tiempo_atencion'].mean()
+                st.metric("Atención Promedio", f"{avg_service:.1f} min")
+            
+            with col3:
+                avg_total = stats_data['Tiempo_total'].mean()
+                st.metric("Total Promedio", f"{avg_total:.1f} min")
+            
+            with col4:
+                avg_delay = stats_data['Tiempo_retraso'].mean()
+                delay_color = "normal" if avg_delay <= 0 else "inverse"
+                st.metric("Retraso Promedio", f"{avg_delay:.1f} min")
+        
+        st.markdown("---")
+        
         # Graph 1: Weekly Time Metrics
         st.subheader("📈 Gráfico 1: Tiempos por Semana")
         weekly_data = aggregate_by_week(filtered_data, selected_provider)
@@ -1140,36 +1169,6 @@ def main():
                 st.plotly_chart(fig4, use_container_width=True)
         else:
             st.info("No hay datos de horas de reserva para el período especificado.")
-        
-        # Summary stats
-        st.markdown("---")
-        st.subheader("📊 Estadísticas del Período")
-        
-        if not filtered_data.empty:
-            # Filter by provider for stats
-            stats_data = filtered_data.copy()
-            if selected_provider != "Todos":
-                stats_data = stats_data[stats_data['Proveedor'] == selected_provider]
-            
-            if not stats_data.empty:
-                col1, col2, col3, col4 = st.columns(4)
-                
-                with col1:
-                    avg_wait = stats_data['Tiempo_espera'].mean()
-                    st.metric("Espera Promedio", f"{avg_wait:.1f} min")
-                
-                with col2:
-                    avg_service = stats_data['Tiempo_atencion'].mean()
-                    st.metric("Atención Promedio", f"{avg_service:.1f} min")
-                
-                with col3:
-                    avg_total = stats_data['Tiempo_total'].mean()
-                    st.metric("Total Promedio", f"{avg_total:.1f} min")
-                
-                with col4:
-                    avg_delay = stats_data['Tiempo_retraso'].mean()
-                    delay_color = "normal" if avg_delay <= 0 else "inverse"
-                    st.metric("Retraso Promedio", f"{avg_delay:.1f} min")
 
 if __name__ == "__main__":
     main()

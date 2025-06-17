@@ -2,7 +2,8 @@ import io
 import os
 import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta, time
+import time
+from datetime import datetime, timedelta, time as dt_time
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.user_credential import UserCredential
 
@@ -431,7 +432,7 @@ def main():
                 )
             
             # Combine into time object
-            arrival_time = time(arrival_hour, arrival_minute)
+            arrival_time = dt_time(arrival_hour, arrival_minute)
             
             st.info(f"Fecha: {today_date.strftime('%Y-%m-%d')}")
         
@@ -477,6 +478,10 @@ def main():
                                 st.info(f"⚡ Adelanto: {abs(tiempo_retraso)} minutos")
                             else:
                                 st.success("🎯 Llegada puntual")
+                        
+                        # Wait 5 seconds before refreshing
+                        with st.spinner("Actualizando datos..."):
+                            time.sleep(5)
                         st.rerun()
                     else:
                         st.error("Error al guardar la llegada. Intente nuevamente.")
@@ -556,7 +561,7 @@ def main():
                                 key="start_minute_tab2"
                             )
                         
-                        start_time = time(start_hour, start_minute)
+                        start_time = dt_time(start_hour, start_minute)
                     
                     with col2:
                         st.write("**Hora de Fin de Atención:**")
@@ -580,7 +585,7 @@ def main():
                                 key="end_minute_tab2"
                             )
                         
-                        end_time = time(end_hour, end_minute)
+                        end_time = dt_time(end_hour, end_minute)
                     
                     # Save service times button - only show when not registered
                     if st.button("Guardar Atención", type="primary", key="save_service"):
@@ -625,6 +630,9 @@ def main():
                                         with col2:
                                             st.metric("Tiempo Total", f"{tiempo_total} min")
                                         
+                                        # Wait 5 seconds before refreshing
+                                        with st.spinner("Actualizando datos..."):
+                                            time.sleep(5)
                                         st.rerun()
                                     else:
                                         st.error("Error al guardar la atención. Intente nuevamente.")

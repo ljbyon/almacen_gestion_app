@@ -14,6 +14,125 @@ st.set_page_config(
     layout="wide"
 )
 
+# Custom CSS for enhanced tab visibility
+st.markdown("""
+<style>
+/* Tab styling */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 20px;
+    background-color: #f0f2f6;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    height: 60px;
+    background-color: white;
+    border-radius: 8px;
+    padding: 0 20px;
+    border: 2px solid #e1e5e9;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: #1f77b4 !important;
+    color: white !important;
+    border-color: #1f77b4 !important;
+    box-shadow: 0 4px 8px rgba(31, 119, 180, 0.3);
+}
+
+/* Arrival tab content styling */
+.arrival-container {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    border: 3px solid #2196f3;
+    border-radius: 15px;
+    padding: 25px;
+    margin: 15px 0;
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.15);
+}
+
+.arrival-header {
+    background-color: #2196f3;
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Service tab content styling */
+.service-container {
+    background: linear-gradient(135deg, #e8f5e8 0%, #fff3e0 100%);
+    border: 3px solid #4caf50;
+    border-radius: 15px;
+    padding: 25px;
+    margin: 15px 0;
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.15);
+}
+
+.service-header {
+    background-color: #4caf50;
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Button styling */
+.arrival-container .stButton > button {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    padding: 10px 20px;
+    box-shadow: 0 3px 6px rgba(33, 150, 243, 0.3);
+}
+
+.service-container .stButton > button {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    padding: 10px 20px;
+    box-shadow: 0 3px 6px rgba(76, 175, 80, 0.3);
+}
+
+/* Info boxes */
+.arrival-info {
+    background-color: rgba(33, 150, 243, 0.1);
+    border-left: 5px solid #2196f3;
+    padding: 15px;
+    border-radius: 0 8px 8px 0;
+    margin: 10px 0;
+}
+
+.service-info {
+    background-color: rgba(76, 175, 80, 0.1);
+    border-left: 5px solid #4caf50;
+    padding: 15px;
+    border-radius: 0 8px 8px 0;
+    margin: 10px 0;
+}
+
+/* Visual separator */
+.tab-separator {
+    height: 4px;
+    background: linear-gradient(90deg, #2196f3 0%, #4caf50 100%);
+    margin: 20px 0;
+    border-radius: 2px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ─────────────────────────────────────────────────────────────
 # 1. Configuration
 # ─────────────────────────────────────────────────────────────
@@ -347,17 +466,31 @@ def main():
     completed_orders = get_completed_orders(gestion_df)
     pending_arrivals = get_pending_arrivals(today_reservations, gestion_df)
     
-    # Create tabs
-    tab1, tab2 = st.tabs(["📍 Registro de Llegada", "🔄 Registro de Atención"])
+    # Create tabs with enhanced styling
+    tab1, tab2 = st.tabs(["🚚 REGISTRO DE LLEGADA", "⚙️ REGISTRO DE ATENCIÓN"])
+    
+    # Visual separator
+    st.markdown('<div class="tab-separator"></div>', unsafe_allow_html=True)
     
     # ─────────────────────────────────────────────────────────────
     # TAB 1: Arrival Registration
     # ─────────────────────────────────────────────────────────────
     with tab1:
-        st.subheader("📍 Registro de Llegada del Proveedor")
-        st.markdown("*Registre la hora de llegada del proveedor*")
+        # Styled container for arrival tab
+        st.markdown("""
+        <div class="arrival-container">
+            <div class="arrival-header">
+                📍 REGISTRO DE LLEGADA DEL PROVEEDOR
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        col1, col2 = st.columns(2)
+        with st.container():
+            st.markdown('<div class="arrival-container">', unsafe_allow_html=True)
+            
+            st.markdown("*Registre la hora de llegada del proveedor*")
+            
+            col1, col2 = st.columns(2)
         
         with col1:
             # Order selection - only show orders that haven't been processed
@@ -492,154 +625,174 @@ def main():
     # TAB 2: Service Registration
     # ─────────────────────────────────────────────────────────────
     with tab2:
-        st.subheader("🔄 Registro de Atención al Proveedor")
-        st.markdown("*Registre los tiempos de inicio y fin de atención*")
+        # Styled container for service tab
+        st.markdown("""
+        <div class="service-container">
+            <div class="service-header">
+                ⚙️ REGISTRO DE ATENCIÓN AL PROVEEDOR
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Order selection
-        selected_order_tab2 = st.selectbox(
-            "Orden de Compra:",
-            options=existing_arrivals if existing_arrivals else ["No hay llegadas registradas"],
-            disabled=not existing_arrivals,
-            key="order_select_tab2"
-        )
-        
-        if existing_arrivals and selected_order_tab2:
-            # Get arrival record
-            arrival_record = get_arrival_record(gestion_df, selected_order_tab2)
+        with st.container():
+            st.markdown('<div class="service-container">', unsafe_allow_html=True)
             
-            if arrival_record is not None:
-                # Show arrival info
-                arrival_time_str = str(arrival_record['Hora_llegada'])
-                st.info(f"**Proveedor:** {arrival_record['Proveedor']} | "
-                        f"**Llegada:** {arrival_time_str.split(' ')[1][:5] if ' ' in arrival_time_str else 'N/A'}")
+            st.markdown("*Registre los tiempos de inicio y fin de atención*")
+            
+            # Order selection
+            selected_order_tab2 = st.selectbox(
+                "Orden de Compra:",
+                options=existing_arrivals if existing_arrivals else ["No hay llegadas registradas"],
+                disabled=not existing_arrivals,
+                key="order_select_tab2"
+            )
+        
+            if existing_arrivals and selected_order_tab2:
+                # Get arrival record
+                arrival_record = get_arrival_record(gestion_df, selected_order_tab2)
                 
-                # Check if service times already registered
-                service_registered = (
-                    pd.notna(arrival_record['Hora_inicio_atencion']) and 
-                    pd.notna(arrival_record['Hora_fin_atencion'])
-                )
-                
-                if service_registered:
-                    st.success("✅ Atención ya registrada")
-                    # Show existing times
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Tiempo de Espera", f"{arrival_record['Tiempo_espera']} min")
-                        st.metric("Tiempo de Atención", f"{arrival_record['Tiempo_atencion']} min")
-                    with col2:
-                        st.metric("Tiempo Total", f"{arrival_record['Tiempo_total']} min")
-                else:
-                    st.warning("⏳ Pendiente de registrar atención")
+                if arrival_record is not None:
+                    # Show arrival info
+                    arrival_time_str = str(arrival_record['Hora_llegada'])
+                    st.markdown(f'''
+                    <div class="service-info">
+                        <strong>Proveedor:</strong> {arrival_record['Proveedor']} | 
+                        <strong>Llegada:</strong> {arrival_time_str.split(' ')[1][:5] if ' ' in arrival_time_str else 'N/A'}
+                    </div>
+                    ''', unsafe_allow_html=True)
                     
-                    # Service time inputs - only show when not registered
-                    col1, col2 = st.columns(2)
+                    # Check if service times already registered
+                    service_registered = (
+                        pd.notna(arrival_record['Hora_inicio_atencion']) and 
+                        pd.notna(arrival_record['Hora_fin_atencion'])
+                    )
                     
-                    # Parse arrival time for defaults
-                    arrival_datetime = datetime.fromisoformat(str(arrival_record['Hora_llegada']))
-                    default_hour = arrival_datetime.hour
-                    default_minute = (arrival_datetime.minute // 5) * 5  # Round to nearest 5-minute interval
-                    
-                    with col1:
-                        st.write("**Hora de Inicio de Atención:**")
+                    if service_registered:
+                        st.success("✅ Atención ya registrada")
+                        # Show existing times
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Tiempo de Espera", f"{arrival_record['Tiempo_espera']} min")
+                            st.metric("Tiempo de Atención", f"{arrival_record['Tiempo_atencion']} min")
+                        with col2:
+                            st.metric("Tiempo Total", f"{arrival_record['Tiempo_total']} min")
+                    else:
+                        st.warning("⏳ Pendiente de registrar atención")
                         
-                        start_time_col1, start_time_col2 = st.columns(2)
-                        with start_time_col1:
-                            start_hour = st.selectbox(
-                                "Hora:",
-                                options=list(range(0, 24)),
-                                index=default_hour,
-                                format_func=lambda x: f"{x:02d}",
-                                key="start_hour_tab2"
-                            )
+                        # Service time inputs - only show when not registered
+                        col1, col2 = st.columns(2)
                         
-                        with start_time_col2:
-                            start_minute = st.selectbox(
-                                "Minutos:",
-                                options=list(range(0, 60, 5)),  # 5-minute intervals
-                                index=default_minute // 5,
-                                format_func=lambda x: f"{x:02d}",
-                                key="start_minute_tab2"
-                            )
+                        # Parse arrival time for defaults
+                        arrival_datetime = datetime.fromisoformat(str(arrival_record['Hora_llegada']))
+                        default_hour = arrival_datetime.hour
+                        default_minute = (arrival_datetime.minute // 5) * 5  # Round to nearest 5-minute interval
                         
-                        start_time = dt_time(start_hour, start_minute)
-                    
-                    with col2:
-                        st.write("**Hora de Fin de Atención:**")
-                        
-                        end_time_col1, end_time_col2 = st.columns(2)
-                        with end_time_col1:
-                            end_hour = st.selectbox(
-                                "Hora:",
-                                options=list(range(0, 24)),
-                                index=default_hour,
-                                format_func=lambda x: f"{x:02d}",
-                                key="end_hour_tab2"
-                            )
-                        
-                        with end_time_col2:
-                            end_minute = st.selectbox(
-                                "Minutos:",
-                                options=list(range(0, 60, 5)),  # 5-minute intervals
-                                index=default_minute // 5,
-                                format_func=lambda x: f"{x:02d}",
-                                key="end_minute_tab2"
-                            )
-                        
-                        end_time = dt_time(end_hour, end_minute)
-                    
-                    # Save service times button - only show when not registered
-                    if st.button("Guardar Atención", type="primary", key="save_service"):
-                        if start_time and end_time:
-                            today_date = datetime.now().date()
-                            hora_inicio = combine_date_time(today_date, start_time)
-                            hora_fin = combine_date_time(today_date, end_time)
+                        with col1:
+                            st.write("**Hora de Inicio de Atención:**")
                             
-                            # Parse arrival time
-                            arrival_datetime = datetime.fromisoformat(str(arrival_record['Hora_llegada']))
+                            start_time_col1, start_time_col2 = st.columns(2)
+                            with start_time_col1:
+                                start_hour = st.selectbox(
+                                    "Hora:",
+                                    options=list(range(0, 24)),
+                                    index=default_hour,
+                                    format_func=lambda x: f"{x:02d}",
+                                    key="start_hour_tab2"
+                                )
                             
-                            # Validate times
-                            if hora_inicio >= hora_fin:
-                                st.error("La hora de fin debe ser posterior a la hora de inicio.")
-                            elif hora_inicio < arrival_datetime:
-                                st.error("La hora de inicio de atención no puede ser anterior a la hora de llegada.")
+                            with start_time_col2:
+                                start_minute = st.selectbox(
+                                    "Minutos:",
+                                    options=list(range(0, 60, 5)),  # 5-minute intervals
+                                    index=default_minute // 5,
+                                    format_func=lambda x: f"{x:02d}",
+                                    key="start_minute_tab2"
+                                )
+                            
+                            start_time = dt_time(start_hour, start_minute)
+                        
+                        with col2:
+                            st.write("**Hora de Fin de Atención:**")
+                            
+                            end_time_col1, end_time_col2 = st.columns(2)
+                            with end_time_col1:
+                                end_hour = st.selectbox(
+                                    "Hora:",
+                                    options=list(range(0, 24)),
+                                    index=default_hour,
+                                    format_func=lambda x: f"{x:02d}",
+                                    key="end_hour_tab2"
+                                )
+                            
+                            with end_time_col2:
+                                end_minute = st.selectbox(
+                                    "Minutos:",
+                                    options=list(range(0, 60, 5)),  # 5-minute intervals
+                                    index=default_minute // 5,
+                                    format_func=lambda x: f"{x:02d}",
+                                    key="end_minute_tab2"
+                                )
+                            
+                            end_time = dt_time(end_hour, end_minute)
+                        
+                        # Save service times button - only show when not registered
+                        if st.button("Guardar Atención", type="primary", key="save_service"):
+                            if start_time and end_time:
+                                today_date = datetime.now().date()
+                                hora_inicio = combine_date_time(today_date, start_time)
+                                hora_fin = combine_date_time(today_date, end_time)
+                                
+                                # Parse arrival time
+                                arrival_datetime = datetime.fromisoformat(str(arrival_record['Hora_llegada']))
+                                
+                                # Validate times
+                                if hora_inicio >= hora_fin:
+                                    st.error("La hora de fin debe ser posterior a la hora de inicio.")
+                                elif hora_inicio < arrival_datetime:
+                                    st.error("La hora de inicio de atención no puede ser anterior a la hora de llegada.")
+                                else:
+                                    # Calculate times
+                                    tiempo_espera = calculate_time_difference(arrival_datetime, hora_inicio)
+                                    tiempo_atencion = calculate_time_difference(hora_inicio, hora_fin)
+                                    tiempo_total = calculate_time_difference(arrival_datetime, hora_fin)
+                                    
+                                    # Prepare service data
+                                    service_data = {
+                                        'Hora_inicio_atencion': hora_inicio.strftime('%Y-%m-%d %H:%M:%S'),
+                                        'Hora_fin_atencion': hora_fin.strftime('%Y-%m-%d %H:%M:%S'),
+                                        'Tiempo_espera': tiempo_espera,
+                                        'Tiempo_atencion': tiempo_atencion,
+                                        'Tiempo_total': tiempo_total
+                                    }
+                                    
+                                    # Save to Excel
+                                    with st.spinner("Guardando atención..."):
+                                        if update_service_times(selected_order_tab2, service_data):
+                                            st.success("✅ Atención registrada exitosamente!")
+                                            
+                                            # Show summary
+                                            col1, col2 = st.columns(2)
+                                            with col1:
+                                                st.metric("Tiempo de Espera", f"{tiempo_espera} min")
+                                                st.metric("Tiempo de Atención", f"{tiempo_atencion} min")
+                                            with col2:
+                                                st.metric("Tiempo Total", f"{tiempo_total} min")
+                                            
+                                            # Wait 5 seconds before refreshing
+                                            with st.spinner("Actualizando datos..."):
+                                                time.sleep(5)
+                                            st.rerun()
+                                        else:
+                                            st.error("Error al guardar la atención. Intente nuevamente.")
                             else:
-                                # Calculate times
-                                tiempo_espera = calculate_time_difference(arrival_datetime, hora_inicio)
-                                tiempo_atencion = calculate_time_difference(hora_inicio, hora_fin)
-                                tiempo_total = calculate_time_difference(arrival_datetime, hora_fin)
-                                
-                                # Prepare service data
-                                service_data = {
-                                    'Hora_inicio_atencion': hora_inicio.strftime('%Y-%m-%d %H:%M:%S'),
-                                    'Hora_fin_atencion': hora_fin.strftime('%Y-%m-%d %H:%M:%S'),
-                                    'Tiempo_espera': tiempo_espera,
-                                    'Tiempo_atencion': tiempo_atencion,
-                                    'Tiempo_total': tiempo_total
-                                }
-                                
-                                # Save to Excel
-                                with st.spinner("Guardando atención..."):
-                                    if update_service_times(selected_order_tab2, service_data):
-                                        st.success("✅ Atención registrada exitosamente!")
-                                        
-                                        # Show summary
-                                        col1, col2 = st.columns(2)
-                                        with col1:
-                                            st.metric("Tiempo de Espera", f"{tiempo_espera} min")
-                                            st.metric("Tiempo de Atención", f"{tiempo_atencion} min")
-                                        with col2:
-                                            st.metric("Tiempo Total", f"{tiempo_total} min")
-                                        
-                                        # Wait 5 seconds before refreshing
-                                        with st.spinner("Actualizando datos..."):
-                                            time.sleep(5)
-                                        st.rerun()
-                                    else:
-                                        st.error("Error al guardar la atención. Intente nuevamente.")
-                        else:
-                            st.error("Por favor complete todos los campos de tiempo.")
-        else:
-            st.warning("⚠️ No hay llegadas registradas hoy. Primero debe registrar la llegada en la pestaña anterior.")
+                                st.error("Por favor complete todos los campos de tiempo.")
+            else:
+                st.markdown(
+                    '<div class="service-info">⚠️ No hay llegadas registradas hoy. Primero debe registrar la llegada en la pestaña anterior.</div>', 
+                    unsafe_allow_html=True
+                )
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()

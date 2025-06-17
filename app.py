@@ -623,150 +623,150 @@ def main():
             key="order_select_tab2"
         )
         
-            if existing_arrivals and selected_order_tab2:
-                # Get arrival record
-                arrival_record = get_arrival_record(gestion_df, selected_order_tab2)
+        if existing_arrivals and selected_order_tab2:
+            # Get arrival record
+            arrival_record = get_arrival_record(gestion_df, selected_order_tab2)
+            
+            if arrival_record is not None:
+                # Show arrival info
+                arrival_time_str = str(arrival_record['Hora_llegada'])
+                st.markdown(f'''
+                <div class="service-info">
+                    <strong>Proveedor:</strong> {arrival_record['Proveedor']} | 
+                    <strong>Llegada:</strong> {arrival_time_str.split(' ')[1][:5] if ' ' in arrival_time_str else 'N/A'}
+                </div>
+                ''', unsafe_allow_html=True)
                 
-                if arrival_record is not None:
-                    # Show arrival info
-                    arrival_time_str = str(arrival_record['Hora_llegada'])
-                    st.markdown(f'''
-                    <div class="service-info">
-                        <strong>Proveedor:</strong> {arrival_record['Proveedor']} | 
-                        <strong>Llegada:</strong> {arrival_time_str.split(' ')[1][:5] if ' ' in arrival_time_str else 'N/A'}
-                    </div>
-                    ''', unsafe_allow_html=True)
-                    
-                    # Check if service times already registered
-                    service_registered = (
-                        pd.notna(arrival_record['Hora_inicio_atencion']) and 
-                        pd.notna(arrival_record['Hora_fin_atencion'])
-                    )
-                    
-                    if service_registered:
-                        st.success("✅ Atención ya registrada")
-                        # Show existing times
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.metric("Tiempo de Espera", f"{arrival_record['Tiempo_espera']} min")
-                            st.metric("Tiempo de Atención", f"{arrival_record['Tiempo_atencion']} min")
-                        with col2:
-                            st.metric("Tiempo Total", f"{arrival_record['Tiempo_total']} min")
-                    else:
-                        st.warning("⏳ Pendiente de registrar atención")
-                        
-                        # Service time inputs - only show when not registered
-                        col1, col2 = st.columns(2)
-                        
-                        # Parse arrival time for defaults
-                        arrival_datetime = datetime.fromisoformat(str(arrival_record['Hora_llegada']))
-                        default_hour = arrival_datetime.hour
-                        default_minute = (arrival_datetime.minute // 5) * 5  # Round to nearest 5-minute interval
-                        
-                        with col1:
-                            st.write("**Hora de Inicio de Atención:**")
-                            
-                            start_time_col1, start_time_col2 = st.columns(2)
-                            with start_time_col1:
-                                start_hour = st.selectbox(
-                                    "Hora:",
-                                    options=list(range(0, 24)),
-                                    index=default_hour,
-                                    format_func=lambda x: f"{x:02d}",
-                                    key="start_hour_tab2"
-                                )
-                            
-                            with start_time_col2:
-                                start_minute = st.selectbox(
-                                    "Minutos:",
-                                    options=list(range(0, 60, 5)),  # 5-minute intervals
-                                    index=default_minute // 5,
-                                    format_func=lambda x: f"{x:02d}",
-                                    key="start_minute_tab2"
-                                )
-                            
-                            start_time = dt_time(start_hour, start_minute)
-                        
-                        with col2:
-                            st.write("**Hora de Fin de Atención:**")
-                            
-                            end_time_col1, end_time_col2 = st.columns(2)
-                            with end_time_col1:
-                                end_hour = st.selectbox(
-                                    "Hora:",
-                                    options=list(range(0, 24)),
-                                    index=default_hour,
-                                    format_func=lambda x: f"{x:02d}",
-                                    key="end_hour_tab2"
-                                )
-                            
-                            with end_time_col2:
-                                end_minute = st.selectbox(
-                                    "Minutos:",
-                                    options=list(range(0, 60, 5)),  # 5-minute intervals
-                                    index=default_minute // 5,
-                                    format_func=lambda x: f"{x:02d}",
-                                    key="end_minute_tab2"
-                                )
-                            
-                            end_time = dt_time(end_hour, end_minute)
-                        
-                        # Save service times button - only show when not registered
-                        if st.button("Guardar Atención", type="primary", key="save_service"):
-                            if start_time and end_time:
-                                today_date = datetime.now().date()
-                                hora_inicio = combine_date_time(today_date, start_time)
-                                hora_fin = combine_date_time(today_date, end_time)
-                                
-                                # Parse arrival time
-                                arrival_datetime = datetime.fromisoformat(str(arrival_record['Hora_llegada']))
-                                
-                                # Validate times
-                                if hora_inicio >= hora_fin:
-                                    st.error("La hora de fin debe ser posterior a la hora de inicio.")
-                                elif hora_inicio < arrival_datetime:
-                                    st.error("La hora de inicio de atención no puede ser anterior a la hora de llegada.")
-                                else:
-                                    # Calculate times
-                                    tiempo_espera = calculate_time_difference(arrival_datetime, hora_inicio)
-                                    tiempo_atencion = calculate_time_difference(hora_inicio, hora_fin)
-                                    tiempo_total = calculate_time_difference(arrival_datetime, hora_fin)
-                                    
-                                    # Prepare service data
-                                    service_data = {
-                                        'Hora_inicio_atencion': hora_inicio.strftime('%Y-%m-%d %H:%M:%S'),
-                                        'Hora_fin_atencion': hora_fin.strftime('%Y-%m-%d %H:%M:%S'),
-                                        'Tiempo_espera': tiempo_espera,
-                                        'Tiempo_atencion': tiempo_atencion,
-                                        'Tiempo_total': tiempo_total
-                                    }
-                                    
-                                    # Save to Excel
-                                    with st.spinner("Guardando atención..."):
-                                        if update_service_times(selected_order_tab2, service_data):
-                                            st.success("✅ Atención registrada exitosamente!")
-                                            
-                                            # Show summary
-                                            col1, col2 = st.columns(2)
-                                            with col1:
-                                                st.metric("Tiempo de Espera", f"{tiempo_espera} min")
-                                                st.metric("Tiempo de Atención", f"{tiempo_atencion} min")
-                                            with col2:
-                                                st.metric("Tiempo Total", f"{tiempo_total} min")
-                                            
-                                            # Wait 5 seconds before refreshing
-                                            with st.spinner("Actualizando datos..."):
-                                                time.sleep(5)
-                                            st.rerun()
-                                        else:
-                                            st.error("Error al guardar la atención. Intente nuevamente.")
-                            else:
-                                st.error("Por favor complete todos los campos de tiempo.")
-            else:
-                st.markdown(
-                    '<div class="service-info">⚠️ No hay llegadas registradas hoy. Primero debe registrar la llegada en la pestaña anterior.</div>', 
-                    unsafe_allow_html=True
+                # Check if service times already registered
+                service_registered = (
+                    pd.notna(arrival_record['Hora_inicio_atencion']) and 
+                    pd.notna(arrival_record['Hora_fin_atencion'])
                 )
+                
+                if service_registered:
+                    st.success("✅ Atención ya registrada")
+                    # Show existing times
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Tiempo de Espera", f"{arrival_record['Tiempo_espera']} min")
+                        st.metric("Tiempo de Atención", f"{arrival_record['Tiempo_atencion']} min")
+                    with col2:
+                        st.metric("Tiempo Total", f"{arrival_record['Tiempo_total']} min")
+                else:
+                    st.warning("⏳ Pendiente de registrar atención")
+                    
+                    # Service time inputs - only show when not registered
+                    col1, col2 = st.columns(2)
+                    
+                    # Parse arrival time for defaults
+                    arrival_datetime = datetime.fromisoformat(str(arrival_record['Hora_llegada']))
+                    default_hour = arrival_datetime.hour
+                    default_minute = (arrival_datetime.minute // 5) * 5  # Round to nearest 5-minute interval
+                    
+                    with col1:
+                        st.write("**Hora de Inicio de Atención:**")
+                        
+                        start_time_col1, start_time_col2 = st.columns(2)
+                        with start_time_col1:
+                            start_hour = st.selectbox(
+                                "Hora:",
+                                options=list(range(0, 24)),
+                                index=default_hour,
+                                format_func=lambda x: f"{x:02d}",
+                                key="start_hour_tab2"
+                            )
+                        
+                        with start_time_col2:
+                            start_minute = st.selectbox(
+                                "Minutos:",
+                                options=list(range(0, 60, 5)),  # 5-minute intervals
+                                index=default_minute // 5,
+                                format_func=lambda x: f"{x:02d}",
+                                key="start_minute_tab2"
+                            )
+                        
+                        start_time = dt_time(start_hour, start_minute)
+                    
+                    with col2:
+                        st.write("**Hora de Fin de Atención:**")
+                        
+                        end_time_col1, end_time_col2 = st.columns(2)
+                        with end_time_col1:
+                            end_hour = st.selectbox(
+                                "Hora:",
+                                options=list(range(0, 24)),
+                                index=default_hour,
+                                format_func=lambda x: f"{x:02d}",
+                                key="end_hour_tab2"
+                            )
+                        
+                        with end_time_col2:
+                            end_minute = st.selectbox(
+                                "Minutos:",
+                                options=list(range(0, 60, 5)),  # 5-minute intervals
+                                index=default_minute // 5,
+                                format_func=lambda x: f"{x:02d}",
+                                key="end_minute_tab2"
+                            )
+                        
+                        end_time = dt_time(end_hour, end_minute)
+                    
+                    # Save service times button - only show when not registered
+                    if st.button("Guardar Atención", type="primary", key="save_service"):
+                        if start_time and end_time:
+                            today_date = datetime.now().date()
+                            hora_inicio = combine_date_time(today_date, start_time)
+                            hora_fin = combine_date_time(today_date, end_time)
+                            
+                            # Parse arrival time
+                            arrival_datetime = datetime.fromisoformat(str(arrival_record['Hora_llegada']))
+                            
+                            # Validate times
+                            if hora_inicio >= hora_fin:
+                                st.error("La hora de fin debe ser posterior a la hora de inicio.")
+                            elif hora_inicio < arrival_datetime:
+                                st.error("La hora de inicio de atención no puede ser anterior a la hora de llegada.")
+                            else:
+                                # Calculate times
+                                tiempo_espera = calculate_time_difference(arrival_datetime, hora_inicio)
+                                tiempo_atencion = calculate_time_difference(hora_inicio, hora_fin)
+                                tiempo_total = calculate_time_difference(arrival_datetime, hora_fin)
+                                
+                                # Prepare service data
+                                service_data = {
+                                    'Hora_inicio_atencion': hora_inicio.strftime('%Y-%m-%d %H:%M:%S'),
+                                    'Hora_fin_atencion': hora_fin.strftime('%Y-%m-%d %H:%M:%S'),
+                                    'Tiempo_espera': tiempo_espera,
+                                    'Tiempo_atencion': tiempo_atencion,
+                                    'Tiempo_total': tiempo_total
+                                }
+                                
+                                # Save to Excel
+                                with st.spinner("Guardando atención..."):
+                                    if update_service_times(selected_order_tab2, service_data):
+                                        st.success("✅ Atención registrada exitosamente!")
+                                        
+                                        # Show summary
+                                        col1, col2 = st.columns(2)
+                                        with col1:
+                                            st.metric("Tiempo de Espera", f"{tiempo_espera} min")
+                                            st.metric("Tiempo de Atención", f"{tiempo_atencion} min")
+                                        with col2:
+                                            st.metric("Tiempo Total", f"{tiempo_total} min")
+                                        
+                                        # Wait 5 seconds before refreshing
+                                        with st.spinner("Actualizando datos..."):
+                                            time.sleep(5)
+                                        st.rerun()
+                                    else:
+                                        st.error("Error al guardar la atención. Intente nuevamente.")
+                        else:
+                            st.error("Por favor complete todos los campos de tiempo.")
+        else:
+            st.markdown(
+                '<div class="service-info">⚠️ No hay llegadas registradas hoy. Primero debe registrar la llegada en la pestaña anterior.</div>', 
+                unsafe_allow_html=True
+            )
 
 if __name__ == "__main__":
     main()

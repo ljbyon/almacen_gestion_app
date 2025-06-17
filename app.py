@@ -191,7 +191,8 @@ def download_excel_to_memory():
             gestion_df = pd.DataFrame(columns=[
                 'Orden_de_compra', 'Proveedor', 'Numero_de_bultos',
                 'Hora_llegada', 'Hora_inicio_atencion', 'Hora_fin_atencion',
-                'Tiempo_espera', 'Tiempo_atencion', 'Tiempo_total', 'Tiempo_retraso'
+                'Tiempo_espera', 'Tiempo_atencion', 'Tiempo_total', 'Tiempo_retraso',
+                'numero_de_semana', 'hora_de_reserva'
             ])
         
         return credentials_df, reservas_df, gestion_df
@@ -365,8 +366,35 @@ def save_arrival_to_excel(arrival_data):
                 gestion_df['Orden_de_compra'] == arrival_data['Orden_de_compra'], 
                 'Hora_llegada'
             ] = arrival_data['Hora_llegada']
+            
+            # Update week number and reservation hour if missing
+            if 'numero_de_semana' not in gestion_df.columns:
+                gestion_df['numero_de_semana'] = None
+            if 'hora_de_reserva' not in gestion_df.columns:
+                gestion_df['hora_de_reserva'] = None
+            
+            # Calculate week number from arrival date
+            arrival_datetime = datetime.fromisoformat(arrival_data['Hora_llegada'])
+            week_number = arrival_datetime.isocalendar()[1]
+            
+            gestion_df.loc[
+                gestion_df['Orden_de_compra'] == arrival_data['Orden_de_compra'], 
+                'numero_de_semana'
+            ] = week_number
+            
+            # Update reservation hour
+            gestion_df.loc[
+                gestion_df['Orden_de_compra'] == arrival_data['Orden_de_compra'], 
+                'hora_de_reserva'
+            ] = arrival_data['hora_de_reserva']
+            
             updated_gestion_df = gestion_df
         else:
+            # Add week number and reservation hour to new arrival data
+            arrival_datetime = datetime.fromisoformat(arrival_data['Hora_llegada'])
+            week_number = arrival_datetime.isocalendar()[1]
+            arrival_data['numero_de_semana'] = week_number
+            
             # Add new record
             new_row = pd.DataFrame([arrival_data])
             updated_gestion_df = pd.concat([gestion_df, new_row], ignore_index=True)
@@ -390,6 +418,26 @@ def update_service_times(orden_compra, service_data):
         if not mask.any():
             st.error("No se encontró registro de llegada para esta orden.")
             return False
+        
+        # Ensure week number and reservation hour columns exist
+        if 'numero_de_semana' not in gestion_df.columns:
+            gestion_df['numero_de_semana'] = None
+            
+            # Calculate week number for existing records that don't have it
+            for idx, row in gestion_df.iterrows():
+                if pd.notna(row['Hora_llegada']):
+                    try:
+                        arrival_dt = datetime.fromisoformat(str(row['Hora_llegada']))
+                        gestion_df.loc[idx, 'numero_de_semana'] = arrival_dt.isocalendar()[1]
+                    except:
+                        pass
+        
+        if 'hora_de_reserva' not in gestion_df.columns:
+            gestion_df['hora_de_reserva'] = None
+            
+            # Calculate reservation hour for existing records that don't have it
+            # This would require accessing reservas_df, so we'll leave it as None for existing records
+            # It will be populated for new records going forward
         
         # Update service times and calculations
         gestion_df.loc[mask, 'Hora_inicio_atencion'] = service_data['Hora_inicio_atencion']
@@ -570,9 +618,13 @@ def main():
                 # Calculate delay
                 booked_start_time = parse_time_range(str(order_details['Hora']))
                 tiempo_retraso = None
+                hora_de_reserva = None
+                
                 if booked_start_time:
                     booked_datetime = combine_date_time(today_date, booked_start_time)
                     tiempo_retraso = calculate_time_difference(booked_datetime, arrival_datetime)
+                    # Extract hour for hora_de_reserva (e.g., 9 for "9:00-9:30" or "9:30-10:00")
+                    hora_de_reserva = booked_start_time.hour
                 
                 # Prepare arrival data
                 arrival_data = {
@@ -585,7 +637,9 @@ def main():
                     'Tiempo_espera': None,
                     'Tiempo_atencion': None,
                     'Tiempo_total': None,
-                    'Tiempo_retraso': tiempo_retraso
+                    'Tiempo_retraso': tiempo_retraso,
+                    'numero_de_semana': arrival_datetime.isocalendar()[1],
+                    'hora_de_reserva': hora_de_reserva
                 }
                 
                 # Save to Excel

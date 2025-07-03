@@ -184,7 +184,8 @@ def download_excel_to_memory():
         
         # Load all sheets
         credentials_df = pd.read_excel(file_content, sheet_name="proveedor_credencial", dtype=str)
-        reservas_df = pd.read_excel(file_content, sheet_name="proveedor_reservas")
+        reservas_df = pd.read_excel(file_content, sheet_name="proveedor_reservas", dtype={'Orden_de_compra': str})
+
         
         # Try to load gestion sheet, create if doesn't exist
         try:

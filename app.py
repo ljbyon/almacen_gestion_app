@@ -151,7 +151,7 @@ except KeyError as e:
 # ─────────────────────────────────────────────────────────────
 # 2. Excel Download Functions
 # ─────────────────────────────────────────────────────────────
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+@st.cache_data(ttl=300, show_spinner=False)  # Add show_spinner=False
 def download_excel_to_memory():
     """Download Excel file from SharePoint to memory"""
     try:
@@ -1254,11 +1254,12 @@ def main():
         # Get filtered data
         filtered_data = get_completed_weeks_data(gestion_df, selected_weeks)
         
-        # Debug info - you can remove this later
-        current_week = get_current_week()
-        target_weeks = [current_week - i for i in range(1, selected_weeks + 1)]
-        st.caption(f"Debug: Semana actual: {current_week}, Semanas objetivo: {target_weeks}, Registros encontrados: {len(filtered_data)}")
-        
+        # Display number of entries being used for dashboard
+        stats_data_count = filtered_data.copy()
+        if selected_provider != "Todos":
+            stats_data_count = stats_data_count[stats_data_count['Proveedor'] == selected_provider]
+        st.caption(f"📊 Mostrando {len(stats_data_count)} registros para el análisis")
+
         if filtered_data.empty:
             st.warning(f"📊 No hay datos completos para las últimas {selected_weeks} semanas.")
             return

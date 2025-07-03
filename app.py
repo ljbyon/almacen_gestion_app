@@ -315,7 +315,7 @@ def get_completed_weeks_data(gestion_df, weeks_back):
     # Filter data for target weeks
     filtered_df = gestion_df[
         (gestion_df['numero_de_semana'].isin(target_weeks)) &
-        (gestion_df['Tiempo_total'].notna())  # Only completed records
+        (gestion_df.notna().all(axis=1))
     ].copy()
     
     return filtered_df

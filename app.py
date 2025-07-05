@@ -151,7 +151,7 @@ except KeyError as e:
 # ─────────────────────────────────────────────────────────────
 # 2. Excel Download Functions
 # ─────────────────────────────────────────────────────────────
-@st.cache_data(ttl=300, show_spinner=False)  # Add show_spinner=False
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def download_excel_to_memory():
     """Download Excel file from SharePoint to memory"""
     try:
@@ -184,8 +184,7 @@ def download_excel_to_memory():
         
         # Load all sheets
         credentials_df = pd.read_excel(file_content, sheet_name="proveedor_credencial", dtype=str)
-        reservas_df = pd.read_excel(file_content, sheet_name="proveedor_reservas", dtype={'Orden_de_compra': str})
-
+        reservas_df = pd.read_excel(file_content, sheet_name="proveedor_reservas")
         
         # Try to load gestion sheet, create if doesn't exist
         try:
@@ -315,7 +314,7 @@ def get_completed_weeks_data(gestion_df, weeks_back):
     # Filter data for target weeks
     filtered_df = gestion_df[
         (gestion_df['numero_de_semana'].isin(target_weeks)) &
-        (gestion_df.notna().all(axis=1))
+        (gestion_df['Tiempo_total'].notna())  # Only completed records
     ].copy()
     
     return filtered_df
@@ -576,7 +575,7 @@ def get_pending_arrivals(today_reservations, gestion_df):
         ~today_reservations['Orden_de_compra'].isin(processed_orders)
     ]
     
-    return sorted(pending['Orden_de_compra'].astype(str).tolist())
+    return sorted(pending['Orden_de_compra'].tolist())
 
 def get_arrival_record(gestion_df, orden_compra):
     """Get existing arrival record for an order"""
@@ -1254,12 +1253,11 @@ def main():
         # Get filtered data
         filtered_data = get_completed_weeks_data(gestion_df, selected_weeks)
         
-        # Display number of entries being used for dashboard
-        stats_data_count = filtered_data.copy()
-        if selected_provider != "Todos":
-            stats_data_count = stats_data_count[stats_data_count['Proveedor'] == selected_provider]
-        st.caption(f"📊 Mostrando {len(stats_data_count)} registros para el análisis")
-
+        # Debug info - you can remove this later
+        current_week = get_current_week()
+        target_weeks = [current_week - i for i in range(1, selected_weeks + 1)]
+        st.caption(f"Debug: Semana actual: {current_week}, Semanas objetivo: {target_weeks}, Registros encontrados: {len(filtered_data)}")
+        
         if filtered_data.empty:
             st.warning(f"📊 No hay datos completos para las últimas {selected_weeks} semanas.")
             return

@@ -892,7 +892,7 @@ def main():
                             options=working_hours,
                             index=hour_index,
                             format_func=lambda x: f"{x:02d}",
-                            key="arrival_hour_tab1"
+                            key=f"arrival_hour_tab1_{selected_order_tab1}"
                         )
                     
                     with time_col2:
@@ -901,7 +901,7 @@ def main():
                             options=list(range(0, 60, 1)),  # 1-minute intervals
                             index=default_minute,  # Direct minute value as index
                             format_func=lambda x: f"{x:02d}",
-                            key="arrival_minute_tab1"
+                            key=f"arrival_minute_tab1_{selected_order_tab1}"
                         )
                     
                     # Combine into time object
@@ -1108,7 +1108,7 @@ def main():
                                     options=service_hours,
                                     index=start_hour_index,
                                     format_func=lambda x: f"{x:02d}",
-                                    key="start_hour_tab2"
+                                    key=f"start_hour_tab2_{selected_order_tab2}"
                                 )
                             
                             with start_time_col2:
@@ -1117,7 +1117,7 @@ def main():
                                     options=list(range(0, 60, 1)),  # 1-minute intervals
                                     index=default_minute,  # Direct minute value
                                     format_func=lambda x: f"{x:02d}",
-                                    key="start_minute_tab2"
+                                    key=f"start_minute_tab2_{selected_order_tab2}"
                                 )
                             
                             start_time = dt_time(start_hour, start_minute)
@@ -1139,7 +1139,7 @@ def main():
                                     options=service_hours,
                                     index=end_hour_index,
                                     format_func=lambda x: f"{x:02d}",
-                                    key="end_hour_tab2"
+                                    key=f"end_hour_tab2_{selected_order_tab2}"
                                 )
                             
                             with end_time_col2:
@@ -1148,7 +1148,7 @@ def main():
                                     options=list(range(0, 60, 1)),  # 1-minute intervals
                                     index=default_minute,  # Direct minute value
                                     format_func=lambda x: f"{x:02d}",
-                                    key="end_minute_tab2"
+                                    key=f"end_minute_tab2_{selected_order_tab2}"
                                 )
                             
                             end_time = dt_time(end_hour, end_minute)

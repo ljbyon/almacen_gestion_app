@@ -277,6 +277,21 @@ def parse_single_time(time_str):
         return datetime.strptime(time_str.strip(), '%H:%M').time()
     except:
         return None
+        
+def parse_combined_time_slots(time_str):
+    """Parse comma-separated time slots and return the first (start) time"""
+    try:
+        if ',' in time_str:
+            # Take the first time slot for combined bookings
+            first_slot = time_str.split(',')[0].strip()
+            # Remove seconds if present (e.g., "09:00:00" -> "09:00")
+            if first_slot.count(':') == 2:
+                first_slot = ':'.join(first_slot.split(':')[:2])
+            return datetime.strptime(first_slot, '%H:%M').time()
+        return None
+    except:
+        return None        
+        
 
 def calculate_time_difference(start_datetime, end_datetime):
     """Calculate time difference in minutes"""
@@ -824,8 +839,14 @@ def main():
                     ].iloc[0]
                     
                     # Parse the reserved time from the Hora column
+                    #hora_str = str(order_details['Hora']).strip()
+                    #booked_start_time = parse_single_time(hora_str)
+                    #if not booked_start_time:
+                    #    booked_start_time = parse_time_range(hora_str)
                     hora_str = str(order_details['Hora']).strip()
-                    booked_start_time = parse_single_time(hora_str)
+                    booked_start_time = parse_combined_time_slots(hora_str)
+                    if not booked_start_time:
+                        booked_start_time = parse_single_time(hora_str)
                     if not booked_start_time:
                         booked_start_time = parse_time_range(hora_str)
                     
@@ -903,14 +924,45 @@ def main():
                         arrival_datetime = combine_date_time(datetime.now().date(), arrival_time)
                         
                         # Calculate delay and extract reservation hour
-                        tiempo_retraso = 0  # Default to 0 if can't calculate
-                        hora_de_reserva = None
+                        #tiempo_retraso = 0  # Default to 0 if can't calculate
+                        #hora_de_reserva = None
                         
+                        # Final fallback: try parsing comma-separated format manually
+                        try:
+                            if ',' in hora_str:
+                                first_slot = hora_str.split(',')[0].strip()
+                                if ':' in first_slot:
+                                    time_parts = first_slot.split(':')
+                                    booked_hour = int(time_parts[0])
+                                    booked_minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+                                    booked_second = int(time_parts[2]) if len(time_parts) > 2 else 0
+                                    
+                                    booked_datetime = datetime.combine(
+                                        datetime.now().date(), 
+                                        dt_time(booked_hour, booked_minute, booked_second)
+                                    )
+                                    
+                                    tiempo_retraso = calculate_time_difference(booked_datetime, arrival_datetime)
+                                    hora_de_reserva = booked_hour
+                        except Exception:
+                            # If all else fails, set to defaults
+                            hora_de_reserva = None
+                            tiempo_retraso = 0
+
+
+    
                         # Get the actual time value from Excel
                         hora_str = str(order_details['Hora']).strip()
                         
                         # Try parsing as single time first (new format), then as range (old format)
-                        booked_start_time = parse_single_time(hora_str)
+                        #booked_start_time = parse_single_time(hora_str)
+                        #if not booked_start_time:
+                        #    booked_start_time = parse_time_range(hora_str)
+                        
+                        # Try parsing as combined slots first, then single time, then range
+                        booked_start_time = parse_combined_time_slots(hora_str)
+                        if not booked_start_time:
+                            booked_start_time = parse_single_time(hora_str)
                         if not booked_start_time:
                             booked_start_time = parse_time_range(hora_str)
                         
@@ -1148,9 +1200,17 @@ def main():
                                             if not order_reserva.empty:
                                                 booked_time_range = str(order_reserva.iloc[0]['Hora'])
                                                 # Try parsing as single time first (new format), then as range (old format)
-                                                booked_start_time = parse_single_time(booked_time_range)
+                                                #booked_start_time = parse_single_time(booked_time_range)
+                                                #if not booked_start_time:
+                                                #    booked_start_time = parse_time_range(booked_time_range)
+                                                
+                                                
+                                                # Try parsing as combined slots first, then single time, then range
+                                                booked_start_time = parse_combined_time_slots(booked_time_range)
                                                 if not booked_start_time:
-                                                    booked_start_time = parse_time_range(booked_time_range)
+                                                    booked_start_time = parse_single_time(booked_time_range)
+                                                if not booked_start_time:
+                                                    booked_start_time = parse_time_range(booked_time_range)                                                
                                                 
                                                 if booked_start_time:
                                                     booked_datetime = combine_date_time(arrival_datetime.date(), booked_start_time)
